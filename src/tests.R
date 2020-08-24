@@ -12,7 +12,7 @@ library(ini)
 library(tidyr)
 library(zoo) # for rollmean()
 
-print("Entering test-analysis.R")
+print("Entering test.R")
 
 plotWidth <- 10
 plotHeight <- 6 # for single graph: 6 (= 2 times 3) + 1
