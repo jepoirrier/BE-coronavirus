@@ -122,7 +122,7 @@ p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
            size = 3, fontface = "italic") +
   labs(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)",
        x = "Date",
-       y = "# confirmed cases",
+       y = "% positivity",
        caption = paste("(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date\n",
                        "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
 p
