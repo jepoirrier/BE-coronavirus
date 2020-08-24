@@ -56,6 +56,9 @@ datCt <- na.exclude(datC) %>%
   group_by(Date) %>%
   summarise_at(vars(Cases),list(Cases = sum))
 
+# Save to calculate the cumulative # of cases
+datCc <- datCt
+
 # Calculate a 7 day average
 datCt <- datCt %>%
   mutate(Case7da = zoo::rollmean(Cases, k = 7, fill = NA, align = "right"))
@@ -77,13 +80,14 @@ p <- ggplot(dtCt, aes(x = Date, y = Count, group = Cases)) +
            x = datCtlast$Date - 20,
            y = 1500,
            size = 3, fontface = "italic") +
-  labs(title = "Evolution of daily COVID-19 cases in Belgium (2020)",
+  labs(title = "Evolution of daily confirmed COVID-19 cases in Belgium (2020)",
        x = "Date",
-       y = "# cases")
+       y = "# confirmed cases")
 #p
 #ggsave("../figures/cases.png", plot = p, device = "png", width = plotWidth, height = plotHeight, units = "in")
 
 # Respective to total population
+# Not very insightfull but still there ...
 
 bePopTot <- as.integer(pointData$BEPopulation$Total)
 
@@ -111,7 +115,7 @@ q <- ggplot(dtCt, aes(x = Date, y = Count, group = Relative)) +
            x = datCtlast$Date - 60,
            y = 10,
            size = 3, fontface = "italic") +
-  labs(title = "Evolution of daily COVID-19 cases relative to Belgian population (2020)",
+  labs(title = "Evolution of daily confirmed COVID-19 cases relative to Belgian population (2020)",
        x = "Date",
        y = "# cases relative to population (per 100 000 pop.)",
        caption = paste("Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
@@ -120,4 +124,38 @@ q <- ggplot(dtCt, aes(x = Date, y = Count, group = Relative)) +
 r <- ggarrange(p, q, heights = c(1, 1), 
                ncol = 1, nrow = 2, align = "v")
 #r
-ggsave("../figures/cases.png", plot = r, device = "png", width = plotWidth, height = plotHeightLong, units = "in")
+#ggsave("../figures/cases.png", plot = r, device = "png", width = plotWidth, height = plotHeightLong, units = "in")
+
+# Calculate and display the cumulative # cases with datCc
+
+datCc <- datCc %>%
+  mutate(cumulative_cases = cumsum(Cases))
+
+# cleanup
+datCc$Cases <- NULL
+colnames(datCc) <- c("Date", "Cumulative Cases")
+  
+datCclast <- tail(na.exclude(datCc), n = 1)
+
+s <- ggplot(datCc, aes(x = Date, y = `Cumulative Cases`)) +
+  {if(logScale) scale_y_log10()} +
+  {if(logScale) annotation_logticks()} +
+  geom_line(lwd = 1) +
+  theme(legend.position = "bottom") + 
+  # Annotations
+  annotate("text", label = paste("On", datCclast$Date, ":\n",
+                                 format(datCclast$`Cumulative Cases`, scientific = FALSE, big.mark = " ", digits = 5), "cases\n",
+                                 format(datCclast$`Cumulative Cases` / bePopTot * 100000, scientific = FALSE, big.mark = " ", digits = 5), "cases per 100 000 pop.\n"),
+           x = datCclast$Date - 20,
+           y = 5000,
+           size = 3, fontface = "italic") +
+  labs(title = "Evolution of cumulative confirmed COVID-19 cases in Belgium (2020)",
+       x = "Date",
+       y = paste("Cumulative cases", logWarning),
+       caption = paste("Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCclast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+s
+r <- ggarrange(p, s, heights = c(1, 1), 
+               ncol = 1, nrow = 2, align = "v")
+
+ggsave("../figures/cases.png", plot = r, device = "png", width = plotWidth, height = plotHeight, units = "in")
+
