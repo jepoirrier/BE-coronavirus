@@ -115,8 +115,8 @@ p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
   theme(legend.position = "bottom") + 
   # Annotations
   annotate("text", label = paste("On", superDatlast$Date, ":\n",
-                                 "Daily \"positivity\":", format(superDatlast$`Daily kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 5), "\n",
-                                 "7-day average \"positivity\":", format(superDatlast$`7-days average kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 5)),
+                                 "Daily \"positivity\":", format(superDatlast$`Daily kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "%\n",
+                                 "7-day average \"positivity\":", format(superDatlast$`7-days average kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "%"),
            x = datCtlast$Date - 30,
            y = 0.2,
            size = 3, fontface = "italic") +
