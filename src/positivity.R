@@ -128,7 +128,7 @@ p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
        x = "Date",
        y = "% positivity",
        caption = paste("(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date\n",
-                       "(**) The daily \"positivity\" for the last day may be biased by incomplete reporting",
+                       "(**) The daily \"positivity\" for the last day may be biased by incomplete reporting\n",
                        "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
 p
 
