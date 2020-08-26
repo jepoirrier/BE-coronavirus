@@ -17,7 +17,7 @@ print("Entering cases.R")
 plotWidth <- 10
 plotHeight <- 6 # for single graph: 6 (= 2 times 3) + 1
 plotHeightLong <- 12 # for multiple graphs: 9 (= 3 times 3) + 1
-preventMultipleDownload <- FALSE
+preventMultipleDownload <- TRUE
 
 logScale <- TRUE
 logWarning <- ""
@@ -159,3 +159,46 @@ r <- ggarrange(p, s, heights = c(1, 1),
 
 ggsave("../figures/cases.png", plot = r, device = "png", width = plotWidth, height = plotHeight, units = "in")
 
+# Looking at Brabant Wallon & Liege
+
+datCP <- datC %>%
+  na.omit() %>%
+  filter(Province == "BrabantWallon" | Province == "Liège") %>%
+  select(-Region) %>% # pipe shortcut in RStudio: Ctrl + Shift + M
+  # Calculate totals per day
+  group_by(Date, Province) %>%
+  summarise_at(vars(Cases),list(Cases = sum))
+
+TotPop <- data.frame( # https://statbel.fgov.be/fr/themes/population/structure-de-la-population
+  Province = c("Liège", "BrabantWallon"),
+  Population = c(1106992, 403599)
+)
+
+datCP <- merge(datCP, TotPop, by = 'Province', all.x = TRUE)
+
+datCP$casesRel <- datCP$Cases / datCP$Population * 100000
+
+datCP <- datCP %>% 
+  select(-c(Cases, Population))
+
+datCPlast <- tail(datCP, n = 1)
+
+t <- ggplot(datCP, aes(x = Date, y = casesRel, group = Province)) +
+  geom_line(aes(color = Province)) +
+  #gghighlight(Province == "BrabantWallon") + 
+  # Annotations
+  labs(title = "Evolution of daily confirmed COVID-19 cases in some Belgium provinces (2020)",
+       x = "Date",
+       y = "# cases relative to pop. (per 100 000)",
+       caption = paste("Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCPlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+
+t
+
+ggsave("../figures/cases-WB-Lg.png", plot = t, device = "png", width = plotWidth, height = plotHeight, units = "in")
+
+# Trying plotly
+
+#library(plotly)
+
+#fig <- plot_ly(datCP, x = datCP$Date, y = datCP$caseRel, type = 'scatter', mode = 'lines')
+#fig
