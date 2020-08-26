@@ -133,3 +133,14 @@ p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
 p
 
 ggsave("../figures/positivity.png", plot = p, device = "png", width = plotWidth, height = plotHeight, units = "in")
+
+library(plotly)
+
+fig <- plot_ly(superDat, x = superDat$Date, y = superDat$`7-days average kind-of Positivity`, type = 'scatter', mode = 'lines')
+fig <- fig %>% 
+  layout(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)\n(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date",
+         xaxis = list(title = "Date"),
+         yaxis = list (title = "% positivity"))
+fig
+htmlwidgets::saveWidget(config(fig, showLink = T), "../figures/positivity-7-days-average.html")
+#plotly_POST(x = fig, sharing = "public")
