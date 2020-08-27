@@ -163,15 +163,15 @@ ggsave("../figures/cases.png", plot = r, device = "png", width = plotWidth, heig
 
 datCP <- datC %>%
   na.omit() %>%
-  filter(Province == "BrabantWallon" | Province == "Liège") %>%
+  filter(Province == "BrabantWallon" | Province == "Liège" | Province == "Brussels") %>%
   select(-Region) %>% # pipe shortcut in RStudio: Ctrl + Shift + M
   # Calculate totals per day
   group_by(Date, Province) %>%
   summarise_at(vars(Cases),list(Cases = sum))
 
 TotPop <- data.frame( # https://statbel.fgov.be/fr/themes/population/structure-de-la-population
-  Province = c("Liège", "BrabantWallon"),
-  Population = c(1106992, 403599)
+  Province = c("Liège", "BrabantWallon", "Brussels"),
+  Population = c(1106992, 403599, 1208542)
 )
 
 datCP <- merge(datCP, TotPop, by = 'Province', all.x = TRUE)
@@ -196,9 +196,3 @@ t
 
 ggsave("../figures/cases-WB-Lg.png", plot = t, device = "png", width = plotWidth, height = plotHeight, units = "in")
 
-# Trying plotly
-
-#library(plotly)
-
-#fig <- plot_ly(datCP, x = datCP$Date, y = datCP$caseRel, type = 'scatter', mode = 'lines')
-#fig
