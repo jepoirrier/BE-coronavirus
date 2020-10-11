@@ -41,19 +41,60 @@ if(file.exists(TFILE)) {
   stop(TFILE, " does not exist") # not the best way to stop (if it even stops!)
 }
 
-datT <- read.csv(TFILE, sep = ",", colClasses = c("Date", "integer"))
+datT <- read.csv(TFILE, sep = ",", colClasses = c("Date", "character", "character", "integer", "integer"))
 datT$DATE <- as.Date(datT$DATE)
 lastTDate <- max(datT$DATE)
 print(paste("Latest data point in TFILE:", lastTDate))
 
-# Clean the data
-colnames(datT) <- c("Date", "Tests")
+# Rename headers and aggregate data for Belgium
+# TODO % positive tests per province / region
+colnames(datT) <- c("Date", "Province", "Region", "TestsAll", "TestsPos")
+datT <- na.exclude(datT) %>%
+  group_by(Date) %>%
+  summarise_at(c("TestsAll", "TestsPos"), sum)
+datT$TestsPcPos <- datT$TestsPos / datT$TestsAll * 100
 
-# Calculate a 7 day average
+# Calculate a 7 day average on tests
 datT <- datT %>%
-  mutate(tests_7da = zoo::rollmean(Tests, k = 7, fill = NA, align = "right"))
-colnames(datT) <- c("Date", "Tests daily", "Tests 7-days average")
+  mutate(testsA_7da = zoo::rollmean(TestsAll, k = 7, fill = NA, align = "right")) %>%
+  mutate(testsP_7da = zoo::rollmean(TestsPos, k = 7, fill = NA, align = "right"))
+colnames(datT) <- c("Date", "Tests Total", "Tests Positifs", "Tests Pc Positifs", "Tests Total 7-days average",  "Tests Positifs 7-days average")
 datTlast <- tail(datT, n = 1)
+
+# Plot total tests and positive tests (raw and 7-days average)
+datT1 <- datT
+datT1$`Tests Positifs` <- NULL
+datT1$`Tests Pc Positifs` <- NULL
+datT1$`Tests Positifs 7-days average` <- NULL
+colnames(datT1) <- c("Date", "Daily", "7-days average")
+cols2pivot <- colnames(datT1)
+cols2pivot <- cols2pivot[2:length(cols2pivot)] # we don't need "Date"
+dT1 <- pivot_longer(data = datT1, cols = cols2pivot, names_to = "Tests Total", values_to = "Count", values_drop_na = TRUE)
+p <- ggplot(dT1, aes(x = Date, y = Count, group = `Tests Total`)) +
+  geom_line(aes(color = `Tests Total`))
+p
+
+p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
+  geom_line(aes(color = Positivity)) +
+  theme(legend.position = "bottom") + 
+  # Annotations
+  annotate("text", label = paste("On", superDatlast$Date, ":\n",
+                                 "Daily \"positivity\":", format(superDatlast$`Daily kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "% (**)\n",
+                                 "7-day average \"positivity\":", format(superDatlast$`7-days average kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "%"),
+           x = superDatlast$Date - 30,
+           y = 20,
+           size = 3, fontface = "italic") +
+  annotate("text", label = paste("(**)"),
+           x = superDatlast$Date,
+           y = superDatlast$`Daily kind-of Positivity` + 3,
+           size = 3) +
+  labs(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)",
+       x = "Date",
+       y = "% positivity",
+       caption = paste("(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date\n",
+                       "(**) The daily \"positivity\" for the last day may be biased by incomplete reporting\n",
+                       "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+p
 
 # Cases
 
@@ -134,13 +175,13 @@ p
 
 ggsave("../figures/positivity.png", plot = p, device = "png", width = plotWidth, height = plotHeight, units = "in")
 
-library(plotly)
-
-fig <- plot_ly(superDat, x = superDat$Date, y = superDat$`7-days average kind-of Positivity`, type = 'scatter', mode = 'lines')
-fig <- fig %>% 
-  layout(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)\n(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date",
-         xaxis = list(title = "Date"),
-         yaxis = list (title = "% positivity"))
-fig
-htmlwidgets::saveWidget(config(fig, showLink = T), "../figures/positivity-7-days-average.html")
+# library(plotly)
+# 
+# fig <- plot_ly(superDat, x = superDat$Date, y = superDat$`7-days average kind-of Positivity`, type = 'scatter', mode = 'lines')
+# fig <- fig %>% 
+#   layout(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)\n(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date",
+#          xaxis = list(title = "Date"),
+#          yaxis = list (title = "% positivity"))
+# fig
+# htmlwidgets::saveWidget(config(fig, showLink = T), "../figures/positivity-7-days-average.html")
 #plotly_POST(x = fig, sharing = "public")
