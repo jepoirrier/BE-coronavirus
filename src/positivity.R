@@ -71,30 +71,81 @@ cols2pivot <- colnames(datT1)
 cols2pivot <- cols2pivot[2:length(cols2pivot)] # we don't need "Date"
 dT1 <- pivot_longer(data = datT1, cols = cols2pivot, names_to = "Tests Total", values_to = "Count", values_drop_na = TRUE)
 p <- ggplot(dT1, aes(x = Date, y = Count, group = `Tests Total`)) +
-  geom_line(aes(color = `Tests Total`))
+  geom_line(aes(color = `Tests Total`)) +
+  annotate("text", label = paste("On", datTlast$Date, ":\n",
+                                 "Tests done:", format(datTlast$`Tests Total`, scientific = FALSE, big.mark = " ", digits = 2), "\n",
+                                 "7-day average tests done:", format(datTlast$`Tests Total 7-days average`, scientific = FALSE, big.mark = " ", digits = 2)),
+           x = datTlast$Date - 90,
+           y = 40000,
+           size = 3, fontface = "italic") +
+  labs(title = "Evolution of daily total COVID-19 tests done in Belgium (2020)",
+       x = "Date",
+       y = "Daily total tests done")
 p
 
-p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
+datT2 <- datT
+datT2$`Tests Total` <- NULL
+datT2$`Tests Pc Positifs` <- NULL
+datT2$`Tests Total 7-days average` <- NULL
+colnames(datT2) <- c("Date", "Daily", "7-days average")
+cols2pivot <- colnames(datT2)
+cols2pivot <- cols2pivot[2:length(cols2pivot)] # we don't need "Date"
+dT2 <- pivot_longer(data = datT2, cols = cols2pivot, names_to = "Tests Positive", values_to = "Count", values_drop_na = TRUE)
+q <- ggplot(dT2, aes(x = Date, y = Count, group = `Tests Positive`)) +
+  geom_line(aes(color = `Tests Positive`)) +
+  annotate("text", label = paste("On", datTlast$Date, ":\n",
+                                 "Tests positive:", format(datTlast$`Tests Positifs`, scientific = FALSE, big.mark = " ", digits = 2), "\n",
+                                 "7-day average tests positive:", format(datTlast$`Tests Positifs 7-days average`, scientific = FALSE, big.mark = " ", digits = 2)),
+           x = datTlast$Date - 90,
+           y = 4000,
+           size = 3, fontface = "italic") +
+  labs(title = "Evolution of daily positive COVID-19 tests in Belgium (2020)",
+       x = "Date",
+       y = "Daily positive tests results",
+       caption = paste("Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datTlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+q
+r <- ggarrange(p, q, heights = c(1, 1), 
+               ncol = 1, nrow = 2, align = "v")
+r
+ggsave("../figures/tests.png", plot = r, device = "png", width = plotWidth, height = plotHeightLong, units = "in")
+# for tests, I used to do Total tests per 100,000 pop. - but no more
+
+# Plot total tests and positive tests (raw and 7-days average)
+datT3 <- datT
+datT3$`Tests Total 7-days average` <- NULL
+datT3$`Tests Positifs 7-days average` <- NULL
+datT3$`Tests Total` <- NULL
+datT3$`Tests Positifs` <- NULL
+datT3 <- datT3 %>%
+  mutate(testsPc_7da = zoo::rollmean(`Tests Pc Positifs`, k = 7, fill = NA, align = "right"))
+colnames(datT3) <- c("Date", "Daily", "7-day average")
+datT3last <- tail(datT3, n = 1)
+cols2pivot <- colnames(datT3)
+cols2pivot <- cols2pivot[2:length(cols2pivot)] # we don't need "Date"
+dT3 <- pivot_longer(data = datT3, cols = cols2pivot, names_to = "Positivity", values_to = "Percentage", values_drop_na = TRUE)
+s <- ggplot(dT3, aes(x = Date, y = Percentage, group = Positivity)) +
   geom_line(aes(color = Positivity)) +
-  theme(legend.position = "bottom") + 
-  # Annotations
-  annotate("text", label = paste("On", superDatlast$Date, ":\n",
-                                 "Daily \"positivity\":", format(superDatlast$`Daily kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "% (**)\n",
-                                 "7-day average \"positivity\":", format(superDatlast$`7-days average kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "%"),
-           x = superDatlast$Date - 30,
+  annotate("text", label = paste("On", datT3last$Date, ":\n",
+                                 "Daily \"positivity\":", format(datT3last$Daily, scientific = FALSE, big.mark = " ", digits = 2), "% (**)\n",
+                                 "7-day average \"positivity\":", format(datT3last$`7-day average`, scientific = FALSE, big.mark = " ", digits = 2), "%"),
+           x = datT3last$Date - 30,
            y = 20,
            size = 3, fontface = "italic") +
   annotate("text", label = paste("(**)"),
-           x = superDatlast$Date,
-           y = superDatlast$`Daily kind-of Positivity` + 3,
+           x = datT3last$Date,
+           y = datT3last$Daily + 3,
            size = 3) +
-  labs(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)",
+  labs(title = "Evolution of COVID-19 positivity rate (*) in Belgium (2020)",
        x = "Date",
-       y = "% positivity",
-       caption = paste("(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date\n",
-                       "(**) The daily \"positivity\" for the last day may be biased by incomplete reporting\n",
-                       "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
-p
+       y = "% tests turning out positive",
+       caption = paste("(*) Positivity rate defined as N positive tests / N total tests\n",
+                       "(**) The positivity for the last day may be biased by incomplete reporting\n",
+                       "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datT3last$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+
+s
+
+ggsave("../figures/positivity.png", plot = s, device = "png", width = plotWidth, height = plotHeight, units = "in")
+
 
 # Cases
 
@@ -135,45 +186,44 @@ datCtlast <- tail(na.exclude(datCt), n = 1)
 # Merging the 2 datasets
 superDat <- merge(datT, datCt, by = 'Date', all.y = TRUE) # usually datCt (cases) have less dates
 
-superDat$TestsPositivity <- superDat$`Cases daily` / superDat$`Tests daily` * 100
-superDat$Tests7daPositivity <- superDat$`Cases 7-days average` / superDat$`Tests 7-days average` * 100
+#superDat$TestsPositivity <- superDat$`Cases daily` / superDat$`Tests daily` * 100
+#superDat$Tests7daPositivity <- superDat$`Cases 7-days average` / superDat$`Tests 7-days average` * 100
 
 # Some cleanup
-superDat$`Tests daily` <- NULL
-superDat$`Tests 7-days average` <- NULL
-superDat$`Cases daily` <- NULL
-superDat$`Cases 7-days average` <- NULL
-colnames(superDat) <- c("Date", "Daily kind-of Positivity", "7-days average kind-of Positivity")
+superDat$`Tests Total` <- NULL
+superDat$`Tests Positifs` <- NULL # comment this if you want to see small variations
+superDat$`Tests Pc Positifs` <- NULL
+superDat$`Tests Total 7-days average` <- NULL
+superDat$`Cases daily` <- NULL # comment this if you want to see small variations
+colnames(superDat) <- c("Date", "Positive tests", "Cases")
 superDatlast <- tail(na.exclude(superDat), n = 1)
 
 # Simply plotting the daily cases
 cols2pivot <- colnames(superDat)
 cols2pivot <- cols2pivot[2:length(cols2pivot)] # we don't need "Date"
-superdt <- pivot_longer(data = superDat, cols = cols2pivot, names_to = "Positivity", values_to = "Count", values_drop_na = TRUE)
+superdt <- pivot_longer(data = superDat, cols = cols2pivot, names_to = "7-day average", values_to = "Count", values_drop_na = TRUE)
 
-p <- ggplot(superdt, aes(x = Date, y = Count, group = Positivity)) +
-  geom_line(aes(color = Positivity)) +
-  theme(legend.position = "bottom") + 
+t <- ggplot(superdt, aes(x = Date, y = Count, group = `7-day average`)) +
+  geom_line(aes(color = `7-day average`)) +
   # Annotations
   annotate("text", label = paste("On", superDatlast$Date, ":\n",
-                                 "Daily \"positivity\":", format(superDatlast$`Daily kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "% (**)\n",
-                                 "7-day average \"positivity\":", format(superDatlast$`7-days average kind-of Positivity`, scientific = FALSE, big.mark = " ", digits = 2), "%"),
-           x = superDatlast$Date - 30,
-           y = 20,
+                                 "7-day average positive tests:", format(superDatlast$`Positive tests`, scientific = FALSE, big.mark = " ", digits = 2), "\n",
+                                 "7-day average cases:", format(superDatlast$Cases, scientific = FALSE, big.mark = " ", digits = 2)),
+           x = superDatlast$Date - 60,
+           y = 2000,
            size = 3, fontface = "italic") +
-  annotate("text", label = paste("(**)"),
+  annotate("text", label = paste("(*)"),
            x = superDatlast$Date,
-           y = superDatlast$`Daily kind-of Positivity` + 3,
+           y = superDatlast$`Positive tests` + 400,
            size = 3) +
-  labs(title = "Evolution of COVID-19 \"positivity rate\" (*) in Belgium (2020)",
+  labs(title = "Evolution of COVID-19 positive tests and cases in Belgium (2020)",
        x = "Date",
-       y = "% positivity",
-       caption = paste("(*) Not a real positivity rate as dates for tests and cases are not matched, just positivity on reported date\n",
-                       "(**) The daily \"positivity\" for the last day may be biased by incomplete reporting\n",
+       y = "Count",
+       caption = paste("(*) The daily count for the last day may be biased by incomplete reporting\n",
                        "Explanations at https://jepoirrier.org/becovid19/ ; data from https://epistat.wiv-isp.be/covid/ ; last data:", format(datCtlast$Date, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
-p
+t
 
-ggsave("../figures/positivity.png", plot = p, device = "png", width = plotWidth, height = plotHeight, units = "in")
+ggsave("../figures/positivity-cases.png", plot = t, device = "png", width = plotWidth, height = plotHeight, units = "in")
 
 # library(plotly)
 # 
