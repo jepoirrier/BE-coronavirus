@@ -44,7 +44,14 @@ q <- ggplot(dtOC, aes(x = `Week ending`, y = Cases, group = Type)) +
        x = "Week ending",
        y = "Number of new cases",
        caption = paste("Note: these numbers are most likely underestimated, for several reasons, see link below\n",
-         "Explanations at https://jepoirrier.org/becovid19/ ; data from https://www.one.be/public/coronavirus/ ; last data:", format(lastODate, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y")))
+         "Explanations at https://jepoirrier.org/becovid19/ ; data from https://www.one.be/public/coronavirus/ ; last data:", format(lastODate, "%b %d, %Y"), " ; last update:", format(Sys.Date(), "%b %d, %Y"))) +
+  # annotation for Toussaint holidays
+  annotate("segment", x = as.Date("2020-11-01"), y = 2100,
+           xend = as.Date("2020-11-15"), yend = 2100,
+           size = 1) +
+  annotate("text", label = paste("All Saints holidays"),
+           x = as.Date("2020-11-08"), y = 2250,
+           size = 4, fontface = "italic")
 q
 
 # Cases, cumulative
